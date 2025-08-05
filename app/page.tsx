@@ -32,7 +32,7 @@ const fetchPosts = async (tagFilter: string | null) => {
 };
 
 export default function Home() {
-  // All hooks must be at the top, before any early returns
+  // All hooks must be called in the same order every render
   const [mounted, setMounted] = useState(false);
   const [presence, setPresence] = useState<string[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -54,7 +54,65 @@ export default function Home() {
   const [freshTags, setFreshTags] = useState<string[]>([]);
   const [relatedTags, setRelatedTags] = useState<string[]>([]);
 
+  // All useEffects must be called in the same order every render
   useEffect(() => { setMounted(true); }, []);
+  
+  // Poll presence
+  useEffect(() => {
+    if (!mounted) return;
+    const name = window.localStorage.getItem('tether_user') || `guest${Math.floor(Math.random()*10000)}`;
+    setUser(name);
+    window.localStorage.setItem('tether_user', name);
+    const updatePresence = () => {
+      fetch('/api/presence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: name }),
+      });
+    };
+    updatePresence();
+    const interval = setInterval(() => {
+      updatePresence();
+      fetchPresence().then(setPresence);
+    }, 5000);
+    fetchPresence().then(setPresence);
+    return () => clearInterval(interval);
+  }, [mounted]);
+
+  // Load tags and posts
+  useEffect(() => {
+    if (!mounted) return;
+    fetchTags().then(setTags);
+    fetchPosts(tagFilter).then(setPosts);
+  }, [mounted, tagFilter]);
+
+  // Fetch tag cloud
+  useEffect(() => {
+    if (!mounted) return;
+    fetch('/api/tag-cloud')
+      .then(res => res.json())
+      .then(setTagCloud);
+  }, [mounted, posts]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    fetch('/api/fresh-tags')
+      .then(res => res.json())
+      .then(setFreshTags);
+  }, [mounted, posts]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (tagFilter) {
+      fetch(`/api/related-tags?tag=${encodeURIComponent(tagFilter)}`)
+        .then(res => res.json())
+        .then(setRelatedTags);
+    } else {
+      setRelatedTags([]);
+    }
+  }, [mounted, tagFilter]);
+
+  // Early return after all hooks are called
   if (!mounted) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FAF7F2' }}>
       <div style={{ fontSize: 24, color: '#7EC4A7', fontWeight: 600 }}>Loading…</div>
@@ -98,81 +156,6 @@ export default function Home() {
     handleMainSearch(randomQuery, 'serendipity');
   };
 
-  // Poll presence
-  useEffect(() => {
-    const name = window.localStorage.getItem('tether_user') || `guest${Math.floor(Math.random()*10000)}`;
-    setUser(name);
-    window.localStorage.setItem('tether_user', name);
-    const updatePresence = () => {
-      fetch('/api/presence', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: name }),
-      });
-    };
-    updatePresence();
-    const interval = setInterval(() => {
-      updatePresence();
-      fetchPresence().then(setPresence);
-    }, 5000);
-    fetchPresence().then(setPresence);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Load tags and posts
-  useEffect(() => {
-    fetchTags().then(setTags);
-    fetchPosts(tagFilter).then(setPosts);
-  }, [tagFilter]);
-
-  // Fetch tag cloud
-  useEffect(() => {
-    fetch('/api/tag-cloud')
-      .then(res => res.json())
-      .then(setTagCloud);
-  }, [posts]);
-
-  useEffect(() => {
-    fetch('/api/fresh-tags')
-      .then(res => res.json())
-      .then(setFreshTags);
-  }, [posts]);
-
-  useEffect(() => {
-    if (tagFilter) {
-      fetch(`/api/related-tags?tag=${encodeURIComponent(tagFilter)}`)
-        .then(res => res.json())
-        .then(setRelatedTags);
-    } else {
-      setRelatedTags([]);
-    }
-  }, [tagFilter]);
-
-  // Post submit
-  const handlePost = async (e: React.FormEvent) => {
-    e.preventDefault();
-    let media_path = null;
-    if (media) {
-      const formData = new FormData();
-      formData.append('file', media);
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-      media_path = data.path;
-    }
-    const tagArr = postTags.split(',').map(t => t.trim()).filter(Boolean);
-    await fetch('/api/posts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user, content, media_path, tags: tagArr }),
-    });
-    setContent('');
-    setMedia(null);
-    setPostTags('');
-    if (fileInput.current) fileInput.current.value = '';
-    fetchPosts(tagFilter).then(setPosts);
-    fetchTags().then(setTags);
-  };
-
   const handleSurpriseMe = async () => {
     setIsSurprising(true);
     setSerendipityPosts([]);
@@ -201,6 +184,31 @@ export default function Home() {
     }
   };
 
+  // Post submit
+  const handlePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    let media_path = null;
+    if (media) {
+      const formData = new FormData();
+      formData.append('file', media);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      media_path = data.path;
+    }
+    const tagArr = postTags.split(',').map(t => t.trim()).filter(Boolean);
+    await fetch('/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user, content, media_path, tags: tagArr }),
+    });
+    setContent('');
+    setMedia(null);
+    setPostTags('');
+    if (fileInput.current) fileInput.current.value = '';
+    fetchPosts(tagFilter).then(setPosts);
+    fetchTags().then(setTags);
+  };
+
   // Color palette & gradient
   const colors = {
     gradient: 'linear-gradient(135deg, #FDE6E3 0%, #FFF6E0 50%, #E3F6F5 100%)', // soft, creative
@@ -216,11 +224,6 @@ export default function Home() {
     buttonInactive: '#E8DED2',
     tagText: '#3A2C29',
     shadow: '0 2px 16px #ffb38533',
-  };
-
-  // Helper for consistent date formatting
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('en-US', { timeZone: 'UTC' });
   };
 
   return (
@@ -339,7 +342,6 @@ export default function Home() {
             <div style={{ display: 'grid', gap: 14 }}>
               {mainSearchResults.map(post => (
                 <div key={post.id} style={{ background: colors.card, borderRadius: 10, padding: 12, border: `1px solid ${colors.border}` }}>
-                  <div style={{ color: colors.accent2, fontSize: 12, marginBottom: 4 }}>{new Date(post.created_at).toLocaleString()}</div>
                   <div style={{ marginBottom: 8, color: colors.text, fontSize: 15 }}>{post.content}</div>
                   {post.media_path && (
                     post.media_path.match(/\.(jpg|jpeg|png|gif)$/i) ? (
@@ -368,7 +370,6 @@ export default function Home() {
             <div style={{ display: 'grid', gap: 14 }}>
               {serendipityPosts.map(post => (
                 <div key={post.id} style={{ background: colors.card, borderRadius: 10, padding: 12, border: `1px solid ${colors.border}` }}>
-                  <div style={{ color: colors.accent2, fontSize: 12, marginBottom: 4 }}>{new Date(post.created_at).toLocaleString()}</div>
                   <div style={{ marginBottom: 8, color: colors.text, fontSize: 15 }}>{post.content}</div>
                   {post.media_path && (
                     post.media_path.match(/\.(jpg|jpeg|png|gif)$/i) ? (
@@ -552,7 +553,6 @@ export default function Home() {
           {posts.length === 0 && <div style={{ color: colors.accent2, textAlign: 'center', fontWeight: 500, fontSize: 18, marginTop: 32 }}>No posts yet. Be the first to share!</div>}
           {posts.map(post => (
             <div key={post.id} style={{ background: colors.card, border: `1px solid ${colors.border}`, borderRadius: 16, marginBottom: 24, padding: 22, boxShadow: colors.shadow }}>
-              <div style={{ color: colors.accent2, fontSize: 14, marginBottom: 6 }}>{new Date(post.created_at).toLocaleString()}</div>
               <div style={{ marginBottom: 14, color: colors.text, fontSize: 18, fontFamily: 'inherit' }}>{post.content}</div>
               {post.media_path && (
                 post.media_path.match(/\.(jpg|jpeg|png|gif)$/i) ? (
