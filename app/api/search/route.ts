@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   if (!mode || mode === 'fts') {
     let fts: any[] = [];
     if (query) {
-      fts = db.prepare(`SELECT id, content, media_path, created_at, user_id FROM posts_fts JOIN posts ON posts_fts.rowid = posts.id WHERE posts_fts MATCH ? ORDER BY created_at DESC LIMIT 20`).all(query);
+      fts = db.prepare(`SELECT posts.id, posts.content, posts.media_path, posts.created_at, posts.user_id FROM posts_fts JOIN posts ON posts_fts.rowid = posts.id WHERE posts_fts MATCH ? ORDER BY posts.created_at DESC LIMIT 20`).all(query);
     }
     results.push({ mode: 'fts', posts: fts.map((post: any) => ({ ...post, tags: getTagsForPost(post.id) })) });
   }
