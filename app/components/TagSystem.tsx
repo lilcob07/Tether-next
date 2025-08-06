@@ -9,6 +9,8 @@ interface TagSystemProps {
   tagCloud: { name: string; count: number }[];
   freshTags: string[];
   addTagToInput: (tag: string) => void;
+  activeCategories: string[];
+  setActiveCategories: (categories: string[] | ((prev: string[]) => string[])) => void;
 }
 
 interface TagCategory {
@@ -23,57 +25,67 @@ export default function TagSystem({
   setPostTags,
   tagCloud,
   freshTags,
-  addTagToInput
+  addTagToInput,
+  activeCategories,
+  setActiveCategories
 }: TagSystemProps) {
-  const [activeCategories, setActiveCategories] = useState<string[]>([]);
-
   const tagCategories: TagCategory[] = [
     {
-      name: 'Medium',
+      name: 'Art Form',
       icon: '🎨',
       color: '#FFB385',
-      tags: ['drawing', 'painting', 'sketch', 'digital', 'photography', 'collage', 'sculpture', 'print', 'textile', 'ceramics']
+      tags: ['drawing', 'painting', 'digital', 'photography', 'collage', 'sculpture', 'textile', 'ceramics']
     },
     {
-      name: 'Writing',
+      name: 'Words',
       icon: '✍️',
       color: '#7EC4A7',
-      tags: ['poem', 'story', 'essay', 'journal', 'haiku', 'prose', 'lyrics', 'script', 'freewrite', 'letter']
+      tags: ['poem', 'story', 'essay', 'journal', 'haiku', 'prose', 'lyrics', 'script']
     },
     {
-      name: 'Audio',
+      name: 'Sound',
       icon: '🎵',
       color: '#FF8C9B',
-      tags: ['music', 'field recording', 'podcast', 'ambient', 'voice', 'instrumental', 'soundscape', 'acoustic', 'electronic', 'lo-fi']
+      tags: ['music', 'field recording', 'podcast', 'ambient', 'voice', 'instrumental', 'soundscape', 'acoustic']
     },
     {
-      name: 'Mood',
+      name: 'Visual',
+      icon: '🎬',
+      color: '#FFD6A5',
+      tags: ['short film', 'animation', 'video', 'cinematic', 'documentary', 'experimental', 'stop motion', 'time-lapse']
+    },
+    {
+      name: 'Feeling',
       icon: '💫',
       color: '#B8A9D9',
-      tags: ['playful', 'quiet', 'tender', 'chaotic', 'melancholy', 'joyful', 'contemplative', 'energetic', 'peaceful', 'intense']
+      tags: ['playful', 'quiet', 'tender', 'chaotic', 'melancholy', 'joyful', 'contemplative', 'energetic']
     },
     {
-      name: 'State',
+      name: 'Process',
       icon: '🌱',
       color: '#A8D5BA',
-      tags: ['unfinished', 'experiment', 'draft', 'complete', 'work-in-progress', 'exploration', 'reflection', 'discovery', 'practice', 'study']
+      tags: ['unfinished', 'experiment', 'draft', 'complete', 'work-in-progress', 'exploration', 'reflection', 'discovery']
     },
     {
       name: 'Color',
       icon: '🌈',
-      color: '#FFD6A5',
+      color: '#FF9AA2',
       tags: ['blue', 'red', 'green', 'yellow', 'purple', 'orange', 'pink', 'black', 'white', 'gold']
     }
   ];
 
-  const handleTagClick = (tag: string) => {
+  const handleTagClick = (tag: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     addTagToInput(tag);
   };
 
-  const handleCategoryClick = (categoryName: string) => {
-    setActiveCategories(prev => {
+  const handleCategoryClick = (categoryName: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveCategories((prev: string[]) => {
       if (prev.includes(categoryName)) {
-        return prev.filter(cat => cat !== categoryName);
+        return prev.filter((cat: string) => cat !== categoryName);
       } else {
         return [...prev, categoryName];
       }
@@ -114,7 +126,7 @@ export default function TagSystem({
         {tagCategories.map(category => (
           <button
             key={category.name}
-            onClick={() => handleCategoryClick(category.name)}
+            onClick={(e) => handleCategoryClick(category.name, e)}
             style={{
               background: activeCategories.includes(category.name) ? category.color : colors.card,
               color: activeCategories.includes(category.name) ? '#FFF' : colors.text,
@@ -175,7 +187,7 @@ export default function TagSystem({
             {activeTags.map(({ tag, category, color }) => (
               <span
                 key={`${category}-${tag}`}
-                onClick={() => handleTagClick(tag)}
+                onClick={(e) => handleTagClick(tag, e)}
                 style={{
                   background: colors.tag,
                   color: colors.tagText,
@@ -217,7 +229,7 @@ export default function TagSystem({
             {freshTags.map(tag => (
               <span
                 key={tag}
-                onClick={() => handleTagClick(tag)}
+                onClick={(e) => handleTagClick(tag, e)}
                 style={{
                   background: '#FFD6E0',
                   color: colors.accent,
@@ -249,7 +261,7 @@ export default function TagSystem({
             {tagCloud.slice(0, 6).map(tag => (
               <span
                 key={tag.name}
-                onClick={() => handleTagClick(tag.name)}
+                onClick={(e) => handleTagClick(tag.name, e)}
                 style={{
                   background: colors.tag,
                   color: colors.tagText,

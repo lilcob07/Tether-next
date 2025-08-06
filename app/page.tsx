@@ -5,7 +5,7 @@ import Header from './components/Header';
 import ActionButtons from './components/ActionButtons';
 import SearchBar from './components/SearchBar';
 import PostCard from './components/PostCard';
-import PostForm from './components/PostForm';
+import CreateButton from './components/CreateButton';
 import TagFilter from './components/TagFilter';
 import { Post } from './types';
 import { fetchPresence, fetchTags, fetchPosts, updatePresence } from './utils/api';
@@ -32,6 +32,7 @@ export default function Home() {
   const [mainRecentSearches, setMainRecentSearches] = useState<string[]>([]);
   const [freshTags, setFreshTags] = useState<string[]>([]);
   const [relatedTags, setRelatedTags] = useState<string[]>([]);
+  const [activeCategories, setActiveCategories] = useState<string[]>([]);
 
   // All useEffects must be called in the same order every render
   useEffect(() => { setMounted(true); }, []);
@@ -220,7 +221,7 @@ export default function Home() {
           </div>
         )}
 
-        <PostForm
+        <CreateButton
           content={content}
           setContent={setContent}
           media={media}
@@ -231,6 +232,8 @@ export default function Home() {
           freshTags={freshTags}
           onPost={handlePost}
           addTagToInput={addTagToInput}
+          activeCategories={activeCategories}
+          setActiveCategories={setActiveCategories}
         />
 
         <TagFilter

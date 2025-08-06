@@ -15,6 +15,8 @@ interface PostFormProps {
   freshTags: string[];
   onPost: (e: React.FormEvent) => void;
   addTagToInput: (tag: string) => void;
+  activeCategories: string[];
+  setActiveCategories: (categories: string[]) => void;
 }
 
 export default function PostForm({
@@ -27,7 +29,9 @@ export default function PostForm({
   tagCloud,
   freshTags,
   onPost,
-  addTagToInput
+  addTagToInput,
+  activeCategories,
+  setActiveCategories
 }: PostFormProps) {
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -55,6 +59,8 @@ export default function PostForm({
         tagCloud={tagCloud}
         freshTags={freshTags}
         addTagToInput={addTagToInput}
+        activeCategories={activeCategories}
+        setActiveCategories={setActiveCategories}
       />
       
       <button type="submit" style={{ width: '100%', padding: 12, borderRadius: 8, background: colors.button, color: colors.buttonText, border: 'none', fontWeight: 700, fontSize: 18, letterSpacing: 1, marginTop: 6, boxShadow: colors.shadow, fontFamily: 'inherit', cursor: 'pointer', transition: 'background 0.2s' }}>
